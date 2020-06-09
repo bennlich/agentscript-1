@@ -9,6 +9,8 @@
             import ColorMap from '../src/ColorMap.js'
             import ThreeView from '../src/ThreeView.js'
             import Model from '../models/Hello3Model.js'
+            import { VRButton } from '../vendor/VRButton.js';
+            import * as THREE from '../vendor/three.js-r117/build/three.module.js'
 
             // const patchesMap = ColorMap.LightGray
             const patchesMap = ColorMap.DarkGray
@@ -99,24 +101,39 @@
 
                 const view = new ThreeView(model, {
                     div: 'modelDiv',
+                    useControls: false,
                     patches: util.oneValOf(options.patches),
                     turtles: util.oneValOf(options.turtles),
                     links: util.oneValOf(options.links),
                 })
+
+                // Enable xr rendering
+                if (view.renderer.xr) {
+                    view.renderer.xr.enabled = true;
+                    view.camera.position.set(0, 0, 0);
+                    let dolly = new THREE.Group();
+                    dolly.position.set( 0, 0, 20 );
+                    dolly.add( view.camera );
+                    view.scene.add( dolly );
+                }
+
+                // Add button to detect xr capability and enter xr mode
+                document.body.appendChild( VRButton.createButton( view.renderer ) );
+
                 console.log(view.options)
                 util.toWindow({ model, view, util })
 
-                await util.timeoutLoop(
+                util.timeoutLoop(
                     () => {
                         model.step()
                         model.tick()
-                        draw(model, view)
                     },
                     -1, //500,
                     33
                 )
-                console.log('done, idling.')
-                view.idle()
+
+                // Render whenever next frame is ready
+                view.renderer.setAnimationLoop(() => draw(model, view))
             }
             run()
         </script>
